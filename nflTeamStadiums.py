@@ -1,5 +1,5 @@
 from custom_libs import requestsCommon as rC
-from typing import Optional
+from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
 
 
 class NFLTeamStadiums:
@@ -10,12 +10,14 @@ class NFLTeamStadiums:
     And various pages linked to on the main page.
     """
     def __init__(self):
-        self.url = 'https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums'
         self.data = list()
+
+        self._main_url = 'https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums'
+        self._team_lists = [city_short, alt_city_short, long, mascots, mascots_short]
         self._get_data()
 
     def _get_data(self):
-        soup = rC.get_soup(self.url, add_user_agent=True)
+        soup = rC.get_soup(self._main_url, add_user_agent=True)
         tables = soup.select('table.wikitable')
 
         # find main table of page by checking the rows counts and getting table with most rows
