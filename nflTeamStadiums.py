@@ -60,11 +60,15 @@ class NFLTeamStadiums:
 
             self.data.append(temp_dict.copy())
 
+    def get_list_of_stadium_names(self):
+        return [x['name'] for x in self.data]
+
 
 def main():
     # Test code
-    stds = NFLTeamStadiums()
-    stop = 1
+    nfl_stadiums = NFLTeamStadiums()
+    stadium_names = nfl_stadiums.get_list_of_stadium_names()
+    print(stadium_names[:5])
 
 
 if __name__ == '__main__':
