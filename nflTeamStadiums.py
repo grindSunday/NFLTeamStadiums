@@ -18,14 +18,33 @@ class NFLTeamStadiums:
 
     def _get_data(self):
         soup = rC.get_soup(self._main_url, add_user_agent=True)
-        tables = soup.select('table.wikitable')
 
-        # find main table of page by checking the rows counts and getting table with most rows
-        row_counts = [len(x.find_all('tr')) for x in tables]
-        main_table_index = row_counts.index(max(row_counts))
-        main_table_content = tables[main_table_index].find_all('tr')
+        # find heading above table
+        heading = soup.find(id='List_of_current_stadiums')
 
-        # extract the data
+        if not heading:
+            print("ERROR: Could not scrape wikipedia correctly. The sections may have been updated.")
+            return None
+
+        # find second table under heading
+        next_ele = heading.next_element
+        table_count = 0
+        table_element = None
+        while next_ele and table_count <= 1:
+            next_ele = next_ele.next_element
+            if next_ele.name == 'table':
+                if table_count == 1:
+                    table_element = next_ele
+                    break
+                else:
+                    table_count = table_count + 1
+
+        if not table_element:
+            print("ERROR: Could not scrape wikipedia correctly. Could not find the stadium table.")
+            return None
+
+        # extract table contents
+        main_table_content = table_element.find_all('tr')
         columns = [x.text.strip() for x in main_table_content[0].find_all('th')]
 
         # indices
@@ -63,6 +82,11 @@ class NFLTeamStadiums:
             self.data.append(temp_dict.copy())
 
     def get_list_of_stadium_names(self):
+        """
+        Use to get the names of all NFL stadiums
+
+        :return: list() of str()
+        """
         return [x['name'] for x in self.data]
 
 
