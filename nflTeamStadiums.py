@@ -11,16 +11,30 @@ class NFLTeamStadiums:
     """
     def __init__(self):
         self.data = list()
-
         self._main_url = 'https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums'
-        self._team_lists = [city_short, alt_city_short, long, mascots, mascots_short]
-        self._get_data()
 
-    def _get_data(self):
+        # Used to find current stadium table. Change this if wiki structure changes.
+        self._current_stadiums_wiki_section_name = 'List_of_current_stadiums'
+        self._current_stadiums_table_from_heading = 2
+
+        # Used for team lookups
+        self._teams_city_short = [x.lower() for x in city_short]
+        self._teams_alt_city_short = [x.lower() for x in alt_city_short]
+        self._teams_long = [x.lower() for x in long]
+        self._teams_mascots = [x.lower() for x in mascots]
+        self._teams_mascots_short = [x.lower() for x in mascots_short]
+        self._team_lists = [self._teams_city_short, self._teams_alt_city_short, self._teams_long,
+                            self._teams_mascots, self._teams_mascots_short]
+
+        # Get and clean data
+        self._get_current_stadium_data()
+        self._add_normalized_current_team_to_data()
+
+    def _get_current_stadium_data(self):
         soup = rC.get_soup(self._main_url, add_user_agent=True)
 
         # find heading above table
-        heading = soup.find(id='List_of_current_stadiums')
+        heading = soup.find(id=self._current_stadiums_wiki_section_name)
 
         if not heading:
             print("ERROR: Could not scrape wikipedia correctly. The sections may have been updated.")
@@ -28,12 +42,12 @@ class NFLTeamStadiums:
 
         # find second table under heading
         next_ele = heading.next_element
-        table_count = 0
+        table_count = 1
         table_element = None
-        while next_ele and table_count <= 1:
+        while next_ele and table_count <= self._current_stadiums_table_from_heading:
             next_ele = next_ele.next_element
             if next_ele.name == 'table':
-                if table_count == 1:
+                if table_count == self._current_stadiums_table_from_heading:
                     table_element = next_ele
                     break
                 else:
@@ -80,6 +94,28 @@ class NFLTeamStadiums:
                 }
 
             self.data.append(temp_dict.copy())
+
+    def _add_normalized_current_team_to_data(self):
+        """
+        This function adds the 'sharedStadium' and 'currentTeams' data
+        :return:
+        """
+        for stadium in self.data:
+            found_current_teams = []
+            for team in stadium['teams']:
+                found_team = self._get_normalized_team(team)
+                if found_team:
+                    found_current_teams.append(found_team)
+
+            stadium['sharedStadium'] = False if len(found_current_teams) == 1 else True
+            stadium['currentTeams'] = found_current_teams.copy()
+
+    def _get_normalized_team(self, search_team):
+        search_team = search_team.lower()
+        for team_list in self._team_lists:
+            if search_team in team_list:
+                return self._teams_city_short[team_list.index(search_team)].upper()
+        return None
 
     def get_list_of_stadium_names(self):
         """
