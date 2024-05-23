@@ -1,0 +1,3 @@
+# Ignore cache files
+/resources/parsedSoup.json
+/resources/rawSoup.txt
