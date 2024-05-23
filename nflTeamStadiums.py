@@ -1,4 +1,6 @@
 from custom_libs import requestsCommon as rC
+from custom_libs import osCommon as osC
+from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
 
 
@@ -9,9 +11,18 @@ class NFLTeamStadiums:
 
     And various pages linked to on the main page.
     """
-    def __init__(self):
+    def __init__(self, use_cache=True, verbose=True):
+        """
+
+        :param use_cache:   bool(), if True, the class will try to use cache from last time it scraped the web. Since
+                            this data is fairly static, use_cache is on by default. Turn it off if you suspect
+                            there were changes in the data to get the latest.
+        """
         self.data = list()
+        self.verbose = verbose
         self._main_url = 'https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums'
+        self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
+        self._parsed_soup_file = osC.create_file_path_string(["resources", "parsedSoup.json"])
 
         # Used to find current stadium table. Change this if wiki structure changes.
         self._current_stadiums_wiki_section_name = 'List_of_current_stadiums'
@@ -27,11 +38,32 @@ class NFLTeamStadiums:
                             self._teams_mascots, self._teams_mascots_short]
 
         # Get and clean data
-        self._get_current_stadium_data()
-        self._add_normalized_current_team_to_data()
+        if use_cache:
+            self._check_cache()
+
+        if not self.data:
+            self._get_current_stadium_data()
+            self._add_normalized_current_team_to_data()
+            fC.dump_json_to_file(self._parsed_soup_file, self.data)
+
+    def _check_print(self, print_txt):
+        if self.verbose:
+            print(print_txt)
+
+    def _check_cache(self):
+        raw_soup = fC.read_file_content(self._raw_soup_file)
+        parsed_soup = fC.load_json_from_file(self._parsed_soup_file)
+
+        if raw_soup == "" or parsed_soup == {}:
+            self._check_print("No cache available. If this is first run this is normal.")
+        else:
+            self._check_print("Loaded data from cache. If the data needs to be refreshed, start the class with "
+                              "parameter use_cache = False")
+            self.data = parsed_soup
 
     def _get_current_stadium_data(self):
         soup = rC.get_soup(self._main_url, add_user_agent=True)
+        fC.write_content_to_file(self._raw_soup_file, soup.prettify())
 
         # find heading above table
         heading = soup.find(id=self._current_stadiums_wiki_section_name)
