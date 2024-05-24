@@ -78,6 +78,7 @@ class NFLTeamStadiums:
         }
 
         # Make the API request
+        self._check_print("INFO: Retrieving data from wikipedia")
         response = rC.basic_request(self._main_url, params=params)
         data = response.json()
 
@@ -218,7 +219,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums(use_cache=False)
+    nfl_stadiums = NFLTeamStadiums()
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
