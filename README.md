@@ -5,8 +5,8 @@ This class utilizes the Wikipedia API to retrieve NFL stadium data and provides 
 access to the same. By default, it will try to utilize cached data and will only retrieve from Wikipedia 
 if there is no cached data.
 
-For example:
-First Run - No cache available, will retrieve stadium data from Wikipedia and build the cache
+For example:<br>
+First Run - No cache available, will retrieve stadium data from Wikipedia and build the cache<br>
 Second Run - Will utilize cache (no connection to Wikipedia is necessary)
 
 Stadium data is fairly static and does not need updating frequently, but to update the cache, 
