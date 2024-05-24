@@ -51,7 +51,6 @@ print(lions_stadium)
 ```
 stadium_names = nfl_stadiums.get_list_of_stadium_names()
 print(stadium_names[:5])
-```
 
 # results
 ['Acrisure Stadium', 'Allegiant Stadium', 'Arrowhead Stadium', 'AT&T Stadium', 'Bank of America Stadium']
