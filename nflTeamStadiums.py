@@ -19,6 +19,7 @@ class NFLTeamStadiums:
                             there were changes in the data to get the latest.
         """
         self.data = list()
+        self._stadium_links = {}
         self.verbose = verbose
         self._main_url = "https://en.wikipedia.org/w/api.php"
 
@@ -130,6 +131,7 @@ class NFLTeamStadiums:
         for row in main_table_content[1:]:
             cells = row.find_all(['th', 'td'])
             name = _clean_wiki_text(cells[name_index].text)
+            self._stadium_links[name] = f"https://en.wikipedia.org/{cells[name_index].find_all('a')[0].attrs['href']}"
             img_url = f"https://en.wikipedia.org/{cells[img_index].find_all('a')[0].attrs['href']}"
             capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
             city = _clean_wiki_text(cells[city_index].text)
