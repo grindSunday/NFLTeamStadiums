@@ -22,7 +22,7 @@ git clone https://github.com/your-username/NFLTeamStadiums.git
 ```
 
 2. Import the class in your code
-```python
+```
 from nflTeamStadiums import NFLTeamStadiums
 ```
 
@@ -32,7 +32,6 @@ from nflTeamStadiums import NFLTeamStadiums
 nfl_stadiums = NFLTeamStadiums()                    # by default will use cached data and print to console
 nfl_stadiums = NFLTeamStadiums(use_cache=False)     # will re-scrape wikipedia and overwrite cache
 nfl_stadiums = NFLTeamStadiums(verbose=False)       # will turn off console printing
-
 ```
 
 ## Methods
@@ -41,8 +40,10 @@ nfl_stadiums = NFLTeamStadiums(verbose=False)       # will turn off console prin
 ```
 lions_stadium = nfl_stadiums.get_stadium_by_team("lions")
 print(lions_stadium)
+```
 
-# results
+#### results:
+```json
 {
     "name": "Ford Field",
     "capacity": 65000,
@@ -65,8 +66,10 @@ print(lions_stadium)
 ```
 stadium_names = nfl_stadiums.get_list_of_stadium_names()
 print(stadium_names[:5])
+```
 
-# results
+#### results:
+```
 ['Acrisure Stadium', 'Allegiant Stadium', 'Arrowhead Stadium', 'AT&T Stadium', 'Bank of America Stadium']
 ```
 
