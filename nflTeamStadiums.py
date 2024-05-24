@@ -55,9 +55,9 @@ class NFLTeamStadiums:
         parsed_soup = fC.load_json_from_file(self._parsed_soup_file)
 
         if raw_soup == "" or parsed_soup == {}:
-            self._check_print("No cache available. If this is first run this is normal.")
+            self._check_print("INFO: No cache available. If this is first run this is normal.")
         else:
-            self._check_print("Loaded data from cache. If the data needs to be refreshed, start the class with "
+            self._check_print("INFO: Loaded data from cache. If the data needs to be refreshed, start the class with "
                               "parameter use_cache = False")
             self.data = parsed_soup
 
@@ -157,12 +157,49 @@ class NFLTeamStadiums:
         """
         return [x['name'] for x in self.data]
 
+    def get_stadium_by_team(self, team):
+        """
+        Provide the team you want stadium information for.
+
+        :param team:    str(), team in which you want stadium information for. One of the following formats:
+                        City + Mascot - e.g., Detroit Lions
+                        Mascot - e.g., Lions
+                        Team Abbreviation - e.g, DET
+
+        :return:        dict(), JSON format of all available data for the given stadium for the provided team
+        """
+
+        team = self._get_normalized_team(team)
+        if team is None:
+            self._check_print("ERROR: The team you provided to get_stadium_by_team was not recognized. Try "
+                              "one of the following formats:\n\n"
+                              "City + Mascot - e.g., Detroit Lions\n"
+                              "Mascot - e.g., Lions\n"
+                              "Team Abbreviation - e.g, DET\n"
+                              )
+            return None
+
+        teams = [x for x in self.data if team in x['currentTeams']]
+
+        if len(teams) == 1:
+            return teams[0]
+        elif len(teams) > 1:
+            self._check_print("WARNING: the team you provided plays at more than one stadium according to the data. "
+                              "Both stadiums are returned in a list")
+            return teams
+        else:
+            self._check_print("ERROR: the team you provided was recognized as a legitimate team, but there is no "
+                              "data for them in the Wikipedia content.")
+            return None
+
 
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums()
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
+    det = nfl_stadiums.get_stadium_by_team('det')
     print(stadium_names[:5])
+    print(det)
 
 
 if __name__ == '__main__':
