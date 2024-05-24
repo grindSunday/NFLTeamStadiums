@@ -126,7 +126,11 @@ class NFLTeamStadiums:
             img_url = f"https://en.wikipedia.org/{cells[img_index].find_all('a')[0].attrs['href']}"
             capacity = int(cells[capacity_index].text.replace(",", "").strip())
             city = cells[city_index].text.strip()
-            surface = cells[surface_index].text.strip()
+
+            surface_text = cells[surface_index].text.strip()
+            ref_bracket_loc = surface_text.find('[')
+            surface = surface_text[:ref_bracket_loc] if ref_bracket_loc > -1 else surface_text
+
             roof_type = cells[roof_index].text.strip()
             teams = [x.text for x in cells[teams_index].find_all('a')]
             year_opened = cells[date_opened_index].text.strip()
@@ -212,7 +216,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums()
+    nfl_stadiums = NFLTeamStadiums(use_cache=False)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])

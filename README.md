@@ -49,7 +49,7 @@ print(lions_stadium)
     "capacity": 65000,
     "imgUrl": "https://en.wikipedia.org//wiki/File:Packers_at_Lions_Dec_2020_(50715608723).jpg",
     "city": "Detroit, Michigan",
-    "surface": "FieldTurf CORE[18]",
+    "surface": "FieldTurf CORE",
     "roofType": "Fixed",
     "teams": [
         "Detroit Lions"
