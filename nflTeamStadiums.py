@@ -20,7 +20,8 @@ class NFLTeamStadiums:
         """
         self.data = list()
         self.verbose = verbose
-        self._main_url = 'https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums'
+        self._main_url = "https://en.wikipedia.org/w/api.php"
+
         self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
         self._parsed_soup_file = osC.create_file_path_string(["resources", "parsedSoup.json"])
 
@@ -62,8 +63,24 @@ class NFLTeamStadiums:
             self.data = parsed_soup
 
     def _get_current_stadium_data(self):
-        soup = rC.get_soup(self._main_url, add_user_agent=True)
-        fC.write_content_to_file(self._raw_soup_file, soup.prettify())
+        # Parameters for the API request
+        params = {
+            "action": "parse",
+            "page": "List of current NFL stadiums",
+            "format": "json",
+            "prop": "text"
+        }
+
+        # Make the API request
+        response = rC.basic_request(self._main_url, params=params)
+        data = response.json()
+
+        # Extract the HTML content
+        html_content = data['parse']['text']['*']
+
+        # Parse the HTML content with BeautifulSoup
+        soup = rC.get_soup_from_html_content(html_content)
+        # fC.write_content_to_file(self._raw_soup_file, soup.prettify())
 
         # find heading above table
         heading = soup.find(id=self._current_stadiums_wiki_section_name)

@@ -1,12 +1,16 @@
 # NFLTeamStadiums
-A simple python class that scrapes Wikipedia for NFL stadium data and provides methods for easy access. By default, this 
-class will try to utilize cached data and will only scrape from wikipedia if there is no cached data.
+A simple python class that provides easy access to NFL stadium data.
+
+This class utilizes the Wikipedia API to retrieve NFL stadium data and provides methods for easy 
+access to the same. By default, it will try to utilize cached data and will only retrieve from Wikipedia 
+if there is no cached data.
 
 For example:
-First Run - No cache available, will scrape Wikipedia data and build cache
+First Run - No cache available, will retrieve stadium data from Wikipedia and build the cache
 Second Run - Will utilize cache (no connection to Wikipedia is necessary)
 
-Stadium data is fairly static, but to update the cache, see the documentation below.
+Stadium data is fairly static and does not need updating frequently, but to update the cache, 
+see the documentation below.
 
 ## Pre-requisites
 - [BeautifulSoup4](https://pypi.org/project/beautifulsoup4/): `pip install beautifulsoup4`

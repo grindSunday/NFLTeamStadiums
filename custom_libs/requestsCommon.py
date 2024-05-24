@@ -3,15 +3,8 @@ import requests
 from fake_useragent import UserAgent    # https://pypi.org/project/fake-useragent/#description
 
 
-def get_soup(url, add_user_agent=False, request_type="GET", **kwargs):
-    page = basic_request(url, add_user_agent, request_type, **kwargs)
-    try:
-        content = page.content
-    except:
-        content = page.text
-
-    soup = bS(content, 'html.parser')
-    return soup
+def get_soup_from_html_content(html_content):
+    return bS(html_content, 'html.parser')
 
 
 def basic_request(url, add_user_agent=False, request_type="GET", timeout=5, **kwargs):
