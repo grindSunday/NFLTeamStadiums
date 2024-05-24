@@ -14,7 +14,6 @@ see the documentation below.
 
 ## Pre-requisites
 - [BeautifulSoup4](https://pypi.org/project/beautifulsoup4/): `pip install beautifulsoup4`
-- [fake-useragent](https://github.com/fake-useragent/fake-useragent): `pip install fake-useragent`
 
 ## Installation and Creating an Instance
 1. Clone or download the repository
