@@ -71,6 +71,7 @@ class NFLTeamStadiums:
             return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
 
         # Parameters for the API request
+        headers = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         params = {
             "action": "parse",
             "page": "List of current NFL stadiums",
@@ -80,7 +81,7 @@ class NFLTeamStadiums:
 
         # Make the API request
         self._check_print("INFO: Retrieving data from wikipedia")
-        response = rC.basic_request(self._main_url, params=params)
+        response = rC.basic_request(self._main_url, params=params, headers=headers)
         data = response.json()
 
         # Extract the HTML content
