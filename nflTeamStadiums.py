@@ -197,9 +197,9 @@ def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums()
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
-    det = nfl_stadiums.get_stadium_by_team('det')
+    lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
-    print(det)
+    print(lions_stadium)
 
 
 if __name__ == '__main__':
