@@ -53,7 +53,7 @@ nfl_stadiums.get_stadium_by_team("lions")
     "teams": [
         "Detroit Lions"
     ],
-    "yearOpened": "2002",
+    "yearOpened": 2002,
     "sharedStadium": false,
     "currentTeams": [
         "DET"

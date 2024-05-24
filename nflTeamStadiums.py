@@ -63,6 +63,12 @@ class NFLTeamStadiums:
             self.data = parsed_soup
 
     def _get_current_stadium_data(self):
+
+        def _clean_wiki_text(text_to_extract_from):
+            text_to_extract_from = text_to_extract_from.strip()
+            ref_bracket_loc = text_to_extract_from.find('[')
+            return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
+
         # Parameters for the API request
         params = {
             "action": "parse",
@@ -122,28 +128,24 @@ class NFLTeamStadiums:
 
         for row in main_table_content[1:]:
             cells = row.find_all(['th', 'td'])
-            name = cells[name_index].text.strip()
+            name = _clean_wiki_text(cells[name_index].text)
             img_url = f"https://en.wikipedia.org/{cells[img_index].find_all('a')[0].attrs['href']}"
-            capacity = int(cells[capacity_index].text.replace(",", "").strip())
-            city = cells[city_index].text.strip()
-
-            surface_text = cells[surface_index].text.strip()
-            ref_bracket_loc = surface_text.find('[')
-            surface = surface_text[:ref_bracket_loc] if ref_bracket_loc > -1 else surface_text
-
-            roof_type = cells[roof_index].text.strip()
-            teams = [x.text for x in cells[teams_index].find_all('a')]
-            year_opened = cells[date_opened_index].text.strip()
+            capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
+            city = _clean_wiki_text(cells[city_index].text)
+            surface = _clean_wiki_text(cells[surface_index].text)
+            roof_type = _clean_wiki_text(cells[roof_index].text)
+            teams = [_clean_wiki_text(x.text) for x in cells[teams_index].find_all('a')]
+            year_opened = _clean_wiki_text(cells[date_opened_index].text)
 
             temp_dict = {
                 "name": name,
-                "capacity": capacity,
+                "capacity": int(capacity),
                 "imgUrl": img_url,
                 "city": city,
                 "surface": surface,
                 "roofType": roof_type,
                 "teams": teams,
-                "yearOpened": year_opened
+                "yearOpened": int(year_opened)
                 }
 
             self.data.append(temp_dict.copy())
