@@ -72,7 +72,8 @@ nfl_stadiums.get_list_of_stadium_names()
 ```
 
 ## Data Source
-This package scrapes data from Wikipedia.
+This package utilizes data from Wikipedia. The core page is based here:
+https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
