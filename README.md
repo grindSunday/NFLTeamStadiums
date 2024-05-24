@@ -38,8 +38,7 @@ nfl_stadiums = NFLTeamStadiums(verbose=False)       # will turn off console prin
 
 ### get_stadium_by_team
 ```
-lions_stadium = nfl_stadiums.get_stadium_by_team("lions")
-print(lions_stadium)
+nfl_stadiums.get_stadium_by_team("lions")
 ```
 
 #### results:
@@ -64,13 +63,12 @@ print(lions_stadium)
 
 ### get_list_of_stadium_names
 ```
-stadium_names = nfl_stadiums.get_list_of_stadium_names()
-print(stadium_names[:5])
+nfl_stadiums.get_list_of_stadium_names()
 ```
 
 #### results:
 ```
-['Acrisure Stadium', 'Allegiant Stadium', 'Arrowhead Stadium', 'AT&T Stadium', 'Bank of America Stadium']
+['Acrisure Stadium', 'Allegiant Stadium', 'Arrowhead Stadium', 'AT&T Stadium', 'Bank of America Stadium' ...]
 ```
 
 ## Data Source
