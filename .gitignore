@@ -2,5 +2,9 @@
 /resources/parsedSoup.json
 /resources/rawSoup.txt
 
-# Pycharm folder
+# Pycharm stuff
 .idea/
+.vscode/
+__pycache__/
+*.pyc
+env/
