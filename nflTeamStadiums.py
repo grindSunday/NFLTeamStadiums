@@ -2,6 +2,7 @@ from custom_libs import requestsCommon as rC
 from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
+import urllib.parse
 
 
 class NFLTeamStadiums:
@@ -19,8 +20,10 @@ class NFLTeamStadiums:
                             there were changes in the data to get the latest.
         """
         self.data = list()
-        self._stadium_links = {}
+        self._stadium_metadata = {"titles": {},
+                                  "urls": {}}
         self.verbose = verbose
+        self._header = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         self._main_url = "https://en.wikipedia.org/w/api.php"
 
         self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
@@ -46,6 +49,7 @@ class NFLTeamStadiums:
         if not self.data:
             self._get_current_stadium_data()
             self._add_normalized_current_team_to_data()
+            self._add_stadium_coordinates_to_data()
             fC.dump_json_to_file(self._parsed_soup_file, self.data)
 
     def _check_print(self, print_txt):
@@ -71,7 +75,6 @@ class NFLTeamStadiums:
             return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
 
         # Parameters for the API request
-        headers = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         params = {
             "action": "parse",
             "page": "List of current NFL stadiums",
@@ -80,8 +83,8 @@ class NFLTeamStadiums:
         }
 
         # Make the API request
-        self._check_print("INFO: Retrieving data from wikipedia")
-        response = rC.basic_request(self._main_url, params=params, headers=headers)
+        self._check_print("INFO: Retrieving base stadium data from wikipedia")
+        response = rC.basic_request(self._main_url, params=params, headers=self._header)
         data = response.json()
 
         # Extract the HTML content
@@ -132,8 +135,10 @@ class NFLTeamStadiums:
         for row in main_table_content[1:]:
             cells = row.find_all(['th', 'td'])
             name = _clean_wiki_text(cells[name_index].text)
-            self._stadium_links[name] = f"https://en.wikipedia.org/{cells[name_index].find_all('a')[0].attrs['href']}"
-            img_url = f"https://en.wikipedia.org/{cells[img_index].find_all('a')[0].attrs['href']}"
+            temp_url = cells[name_index].find_all('a')[0].attrs['href']
+            self._stadium_metadata['titles'][name] = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
+            self._stadium_metadata['urls'][name] = f"https://en.wikipedia.org{temp_url}"
+            img_url = f"https://en.wikipedia.org{cells[img_index].find_all('a')[0].attrs['href']}"
             capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
             city = _clean_wiki_text(cells[city_index].text)
             surface = _clean_wiki_text(cells[surface_index].text)
@@ -168,6 +173,33 @@ class NFLTeamStadiums:
 
             stadium['sharedStadium'] = False if len(found_current_teams) == 1 else True
             stadium['currentTeams'] = found_current_teams.copy()
+
+    def _add_stadium_coordinates_to_data(self):
+
+        titles = [self._stadium_metadata['titles'][x] for x in self._stadium_metadata['titles']]
+        titles = '|'.join(titles)
+
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'prop': 'coordinates',
+            'titles': titles
+        }
+
+        # Make the API request
+        self._check_print("INFO: Retrieving stadium coordinate data from wikipedia")
+        response = rC.basic_request(self._main_url, params=params, headers=self._header)
+        data = response.json()
+
+        stadium_coordinates = {}
+        pages = data['query']['pages']
+        for page_id, page_data in pages.items():
+            if 'coordinates' in page_data:
+                coordinates = page_data['coordinates'][0]
+                stadium_coordinates[page_data['title']] = (coordinates['lat'], coordinates['lon'])
+
+        stop = 1
+        return stadium_coordinates
 
     def _get_normalized_team(self, search_team):
         search_team = search_team.lower()
@@ -222,7 +254,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums()
+    nfl_stadiums = NFLTeamStadiums(use_cache=False)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
