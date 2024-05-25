@@ -3,6 +3,7 @@ from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
 import urllib.parse
+import re
 
 
 class NFLTeamStadiums:
@@ -92,7 +93,6 @@ class NFLTeamStadiums:
 
         # Parse the HTML content with BeautifulSoup
         soup = rC.get_soup_from_html_content(html_content)
-        # fC.write_content_to_file(self._raw_soup_file, soup.prettify())
 
         # find heading above table
         heading = soup.find(id=self._current_stadiums_wiki_section_name)
@@ -176,30 +176,68 @@ class NFLTeamStadiums:
 
     def _add_stadium_coordinates_to_data(self):
 
+        def _format_coordinates(coords):
+            parts = coords.split('|')
+
+            if len(parts) < 8:
+                return "Invalid coordinates format"
+
+            degrees_lat = parts[0] + '°'
+            minutes_lat = parts[1] + '′'
+            seconds_lat = parts[2] + '″'
+            direction_lat = parts[3]
+
+            degrees_lon = parts[4] + '°'
+            minutes_lon = parts[5] + '′'
+            seconds_lon = parts[6] + '″'
+            direction_lon = parts[7]
+
+            formatted_coords = f"{degrees_lat}{minutes_lat}{seconds_lat}{direction_lat} " \
+                               f"{degrees_lon}{minutes_lon}{seconds_lon}{direction_lon}"
+            return formatted_coords
+
         titles = [self._stadium_metadata['titles'][x] for x in self._stadium_metadata['titles']]
         titles = '|'.join(titles)
 
+        # API parameters to get the full HTML content
         params = {
             'action': 'query',
             'format': 'json',
-            'prop': 'coordinates',
-            'titles': titles
+            'prop': 'revisions',
+            'rvprop': 'content',
+            'titles': titles,
         }
 
-        # Make the API request
-        self._check_print("INFO: Retrieving stadium coordinate data from wikipedia")
-        response = rC.basic_request(self._main_url, params=params, headers=self._header)
+        response = rC.basic_request(self._main_url, headers=self._header, params=params)
         data = response.json()
 
-        stadium_coordinates = {}
+        page_contents = {}
+
+        # Process each page in the API response
         pages = data['query']['pages']
         for page_id, page_data in pages.items():
-            if 'coordinates' in page_data:
-                coordinates = page_data['coordinates'][0]
-                stadium_coordinates[page_data['title']] = (coordinates['lat'], coordinates['lon'])
+            title = page_data['title']
 
-        stop = 1
-        return stadium_coordinates
+            # Check if revisions exist for the page
+            if 'revisions' in page_data:
+                # Extract HTML content from the first entry in 'revisions' list
+                html_content = page_data['revisions'][0]['*']
+                # Regular expression to find the coordinates
+                coordinates_pattern = re.compile(r'coordinates\s*=\s*\{\{[Cc]oord\|([^}]+)\}\}')
+
+                # Search for the coordinates in the string
+                match = coordinates_pattern.search(html_content)
+
+                if match:
+                    raw_coordinates = match.group(1)
+                    formatted_coordinates = _format_coordinates(raw_coordinates)
+                else:
+                    stop = 1
+
+            else:
+                # Handle pages without revisions
+                page_contents[title] = None  # or any other default value
+
 
     def _get_normalized_team(self, search_team):
         search_team = search_team.lower()
