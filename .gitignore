@@ -1,3 +1,6 @@
 # Ignore cache files
 /resources/parsedSoup.json
 /resources/rawSoup.txt
+
+# .idea dir
+.idea/
