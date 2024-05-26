@@ -21,16 +21,20 @@ class NFLTeamStadiums:
                             there were changes in the data to get the latest.
         """
         self.data = list()
-        self._stadium_metadata = {"titles": {},
-                                  "urls": {}}
+        self._stadium_metadata = {}
         self.verbose = verbose
+
+        # API Info
         self._header = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         self._main_url = "https://en.wikipedia.org/w/api.php"
 
+        # Project Structure
+        self._resources_dir = osC.create_file_path_string(["resources"])
         self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
         self._parsed_soup_file = osC.create_file_path_string(["resources", "parsedSoup.json"])
+        self._check_create_project_structure()
 
-        # Used to find current stadium table. Change this if wiki structure changes.
+        # Used to find stadium table from HTML. Change this if wiki structure changes.
         self._current_stadiums_wiki_section_name = 'List_of_current_stadiums'
         self._current_stadiums_table_from_heading = 2
 
@@ -43,7 +47,7 @@ class NFLTeamStadiums:
         self._team_lists = [self._teams_city_short, self._teams_alt_city_short, self._teams_long,
                             self._teams_mascots, self._teams_mascots_short]
 
-        # Get and clean data
+        # Get the Data
         if use_cache:
             self._check_cache()
 
@@ -58,6 +62,7 @@ class NFLTeamStadiums:
             print(print_txt)
 
     def _check_cache(self):
+
         raw_soup = fC.read_file_content(self._raw_soup_file)
         parsed_soup = fC.load_json_from_file(self._parsed_soup_file)
 
@@ -132,12 +137,16 @@ class NFLTeamStadiums:
         teams_index = columns.index('Team(s)')
         date_opened_index = columns.index('Opened')
 
+        index_count = 0
         for row in main_table_content[1:]:
             cells = row.find_all(['th', 'td'])
             name = _clean_wiki_text(cells[name_index].text)
             temp_url = cells[name_index].find_all('a')[0].attrs['href']
-            self._stadium_metadata['titles'][name] = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
-            self._stadium_metadata['urls'][name] = f"https://en.wikipedia.org{temp_url}"
+            title = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
+            self._stadium_metadata[title] = {}
+            self._stadium_metadata[title]['name'] = name
+            self._stadium_metadata[title]['url'] = f"https://en.wikipedia.org{temp_url}"
+            self._stadium_metadata[title]['index'] = index_count
             img_url = f"https://en.wikipedia.org{cells[img_index].find_all('a')[0].attrs['href']}"
             capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
             city = _clean_wiki_text(cells[city_index].text)
@@ -158,6 +167,7 @@ class NFLTeamStadiums:
                 }
 
             self.data.append(temp_dict.copy())
+            index_count = index_count + 1
 
     def _add_normalized_current_team_to_data(self):
         """
@@ -175,7 +185,6 @@ class NFLTeamStadiums:
             stadium['currentTeams'] = found_current_teams.copy()
 
     def _add_stadium_coordinates_to_data(self):
-
         def _format_coordinates(coords):
             parts = coords.split('|')
 
@@ -196,19 +205,22 @@ class NFLTeamStadiums:
                                f"{degrees_lon}{minutes_lon}{seconds_lon}{direction_lon}"
             return formatted_coords
 
-        titles = [self._stadium_metadata['titles'][x] for x in self._stadium_metadata['titles']]
+        titles = [x for x in self._stadium_metadata]
         titles = '|'.join(titles)
 
         # API parameters to get the full HTML content
         params = {
             'action': 'query',
             'format': 'json',
-            'prop': 'revisions',
-            'rvprop': 'content',
-            'titles': titles,
+            'prop': 'coordinates',
+            'titles': titles
         }
 
         response = rC.basic_request(self._main_url, headers=self._header, params=params)
+        if response.status_code != 200:
+            self._check_print("ERROR: Could not complete the API request to get coordinates for stadiums")
+            return None
+
         data = response.json()
 
         page_contents = {}
@@ -216,28 +228,22 @@ class NFLTeamStadiums:
         # Process each page in the API response
         pages = data['query']['pages']
         for page_id, page_data in pages.items():
-            title = page_data['title']
-
-            # Check if revisions exist for the page
-            if 'revisions' in page_data:
-                # Extract HTML content from the first entry in 'revisions' list
-                html_content = page_data['revisions'][0]['*']
-                # Regular expression to find the coordinates
-                coordinates_pattern = re.compile(r'coordinates\s*=\s*\{\{[Cc]oord\|([^}]+)\}\}')
-
-                # Search for the coordinates in the string
-                match = coordinates_pattern.search(html_content)
-
-                if match:
-                    raw_coordinates = match.group(1)
-                    formatted_coordinates = _format_coordinates(raw_coordinates)
-                else:
-                    stop = 1
-
+            title = page_data['title'].replace(" ", "_")
+            if "coordinates" in page_data:
+                coordinates = page_data["coordinates"][0]
             else:
-                # Handle pages without revisions
-                page_contents[title] = None  # or any other default value
+                coordinates = None
 
+            data_index = self._stadium_metadata[title]['index']
+            self.data[data_index]['coordinates'] = coordinates
+
+
+    def _check_create_project_structure(self):
+        osC.check_create_directory(self._resources_dir)
+        if not osC.check_if_file_exists(self._raw_soup_file):
+            fC.create_blank_file(self._raw_soup_file)
+        if not osC.check_if_file_exists(self._parsed_soup_file):
+            fC.dump_json_to_file(self._parsed_soup_file, {})
 
     def _get_normalized_team(self, search_team):
         search_team = search_team.lower()

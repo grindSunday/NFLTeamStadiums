@@ -32,3 +32,8 @@ def read_file_content(file_path):
 
     return file_content
 
+
+def create_blank_file(f_path):
+    with open(f_path, 'w', encoding='utf-8') as fp:
+        pass
+
