@@ -3,7 +3,6 @@ from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
 import urllib.parse
-import re
 
 
 class NFLTeamStadiums:
@@ -186,26 +185,6 @@ class NFLTeamStadiums:
             stadium['currentTeams'] = found_current_teams.copy()
 
     def _add_stadium_coordinates_to_data(self):
-        def _format_coordinates(coords):
-            parts = coords.split('|')
-
-            if len(parts) < 8:
-                return "Invalid coordinates format"
-
-            degrees_lat = parts[0] + '°'
-            minutes_lat = parts[1] + '′'
-            seconds_lat = parts[2] + '″'
-            direction_lat = parts[3]
-
-            degrees_lon = parts[4] + '°'
-            minutes_lon = parts[5] + '′'
-            seconds_lon = parts[6] + '″'
-            direction_lon = parts[7]
-
-            formatted_coords = f"{degrees_lat}{minutes_lat}{seconds_lat}{direction_lat} " \
-                               f"{degrees_lon}{minutes_lon}{seconds_lon}{direction_lon}"
-            return formatted_coords
-
         titles = [x for x in self._stadium_metadata]
         titles = '|'.join(titles)
 
@@ -224,8 +203,6 @@ class NFLTeamStadiums:
 
         data = response.json()
 
-        page_contents = {}
-
         # Process each page in the API response
         pages = data['query']['pages']
         for page_id, page_data in pages.items():
@@ -236,6 +213,7 @@ class NFLTeamStadiums:
                 coordinates = None
 
             data_index = self._stadium_metadata[title]['index']
+            # noinspection PyTypeChecker
             self.data[data_index]['coordinates'] = coordinates
 
 
