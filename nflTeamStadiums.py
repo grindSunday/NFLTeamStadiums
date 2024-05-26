@@ -2,6 +2,8 @@ from custom_libs import requestsCommon as rC
 from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
+import urllib.parse
+import re
 
 
 class NFLTeamStadiums:
@@ -19,14 +21,20 @@ class NFLTeamStadiums:
                             there were changes in the data to get the latest.
         """
         self.data = list()
-        self._stadium_links = {}
+        self._stadium_metadata = {}
         self.verbose = verbose
+
+        # API Info
+        self._header = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         self._main_url = "https://en.wikipedia.org/w/api.php"
 
+        # Project Structure
+        self._resources_dir = osC.create_file_path_string(["resources"])
         self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
         self._parsed_soup_file = osC.create_file_path_string(["resources", "parsedSoup.json"])
+        self._check_create_project_structure()
 
-        # Used to find current stadium table. Change this if wiki structure changes.
+        # Used to find stadium table from HTML. Change this if wiki structure changes.
         self._current_stadiums_wiki_section_name = 'List_of_current_stadiums'
         self._current_stadiums_table_from_heading = 2
 
@@ -39,13 +47,14 @@ class NFLTeamStadiums:
         self._team_lists = [self._teams_city_short, self._teams_alt_city_short, self._teams_long,
                             self._teams_mascots, self._teams_mascots_short]
 
-        # Get and clean data
+        # Get the Data
         if use_cache:
             self._check_cache()
 
         if not self.data:
             self._get_current_stadium_data()
             self._add_normalized_current_team_to_data()
+            self._add_stadium_coordinates_to_data()
             fC.dump_json_to_file(self._parsed_soup_file, self.data)
 
     def _check_print(self, print_txt):
@@ -53,6 +62,7 @@ class NFLTeamStadiums:
             print(print_txt)
 
     def _check_cache(self):
+
         raw_soup = fC.read_file_content(self._raw_soup_file)
         parsed_soup = fC.load_json_from_file(self._parsed_soup_file)
 
@@ -71,7 +81,6 @@ class NFLTeamStadiums:
             return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
 
         # Parameters for the API request
-        headers = {'User-Agent': 'NFLTeamStadiums/0.1 (https://github.com/grindSunday/NFLTeamStadiums)'}
         params = {
             "action": "parse",
             "page": "List of current NFL stadiums",
@@ -80,8 +89,8 @@ class NFLTeamStadiums:
         }
 
         # Make the API request
-        self._check_print("INFO: Retrieving data from wikipedia")
-        response = rC.basic_request(self._main_url, params=params, headers=headers)
+        self._check_print("INFO: Retrieving base stadium data from wikipedia")
+        response = rC.basic_request(self._main_url, params=params, headers=self._header)
         data = response.json()
 
         # Extract the HTML content
@@ -89,7 +98,6 @@ class NFLTeamStadiums:
 
         # Parse the HTML content with BeautifulSoup
         soup = rC.get_soup_from_html_content(html_content)
-        # fC.write_content_to_file(self._raw_soup_file, soup.prettify())
 
         # find heading above table
         heading = soup.find(id=self._current_stadiums_wiki_section_name)
@@ -129,11 +137,17 @@ class NFLTeamStadiums:
         teams_index = columns.index('Team(s)')
         date_opened_index = columns.index('Opened')
 
+        index_count = 0
         for row in main_table_content[1:]:
             cells = row.find_all(['th', 'td'])
             name = _clean_wiki_text(cells[name_index].text)
-            self._stadium_links[name] = f"https://en.wikipedia.org/{cells[name_index].find_all('a')[0].attrs['href']}"
-            img_url = f"https://en.wikipedia.org/{cells[img_index].find_all('a')[0].attrs['href']}"
+            temp_url = cells[name_index].find_all('a')[0].attrs['href']
+            title = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
+            self._stadium_metadata[title] = {}
+            self._stadium_metadata[title]['name'] = name
+            self._stadium_metadata[title]['url'] = f"https://en.wikipedia.org{temp_url}"
+            self._stadium_metadata[title]['index'] = index_count
+            img_url = f"https://en.wikipedia.org{cells[img_index].find_all('a')[0].attrs['href']}"
             capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
             city = _clean_wiki_text(cells[city_index].text)
             surface = _clean_wiki_text(cells[surface_index].text)
@@ -153,6 +167,7 @@ class NFLTeamStadiums:
                 }
 
             self.data.append(temp_dict.copy())
+            index_count = index_count + 1
 
     def _add_normalized_current_team_to_data(self):
         """
@@ -168,6 +183,67 @@ class NFLTeamStadiums:
 
             stadium['sharedStadium'] = False if len(found_current_teams) == 1 else True
             stadium['currentTeams'] = found_current_teams.copy()
+
+    def _add_stadium_coordinates_to_data(self):
+        def _format_coordinates(coords):
+            parts = coords.split('|')
+
+            if len(parts) < 8:
+                return "Invalid coordinates format"
+
+            degrees_lat = parts[0] + '°'
+            minutes_lat = parts[1] + '′'
+            seconds_lat = parts[2] + '″'
+            direction_lat = parts[3]
+
+            degrees_lon = parts[4] + '°'
+            minutes_lon = parts[5] + '′'
+            seconds_lon = parts[6] + '″'
+            direction_lon = parts[7]
+
+            formatted_coords = f"{degrees_lat}{minutes_lat}{seconds_lat}{direction_lat} " \
+                               f"{degrees_lon}{minutes_lon}{seconds_lon}{direction_lon}"
+            return formatted_coords
+
+        titles = [x for x in self._stadium_metadata]
+        titles = '|'.join(titles)
+
+        # API parameters to get the full HTML content
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'prop': 'coordinates',
+            'titles': titles
+        }
+
+        response = rC.basic_request(self._main_url, headers=self._header, params=params)
+        if response.status_code != 200:
+            self._check_print("ERROR: Could not complete the API request to get coordinates for stadiums")
+            return None
+
+        data = response.json()
+
+        page_contents = {}
+
+        # Process each page in the API response
+        pages = data['query']['pages']
+        for page_id, page_data in pages.items():
+            title = page_data['title'].replace(" ", "_")
+            if "coordinates" in page_data:
+                coordinates = page_data["coordinates"][0]
+            else:
+                coordinates = None
+
+            data_index = self._stadium_metadata[title]['index']
+            self.data[data_index]['coordinates'] = coordinates
+
+
+    def _check_create_project_structure(self):
+        osC.check_create_directory(self._resources_dir)
+        if not osC.check_if_file_exists(self._raw_soup_file):
+            fC.create_blank_file(self._raw_soup_file)
+        if not osC.check_if_file_exists(self._parsed_soup_file):
+            fC.dump_json_to_file(self._parsed_soup_file, {})
 
     def _get_normalized_team(self, search_team):
         search_team = search_team.lower()
@@ -222,7 +298,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums()
+    nfl_stadiums = NFLTeamStadiums(use_cache=False)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
