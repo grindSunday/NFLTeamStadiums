@@ -98,6 +98,7 @@ class NFLTeamStadiums:
 
         # Parse the HTML content with BeautifulSoup
         soup = rC.get_soup_from_html_content(html_content)
+        fC.write_content_to_file(self._raw_soup_file, str(soup))
 
         # find heading above table
         heading = soup.find(id=self._current_stadiums_wiki_section_name)
@@ -298,7 +299,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums(use_cache=False)
+    nfl_stadiums = NFLTeamStadiums(use_cache=True)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
