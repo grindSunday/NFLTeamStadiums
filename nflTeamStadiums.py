@@ -284,7 +284,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums(use_cache=False)
+    nfl_stadiums = NFLTeamStadiums(use_cache=True)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
