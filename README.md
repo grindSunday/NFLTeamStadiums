@@ -2,35 +2,30 @@
 A simple python class that provides easy access to NFL stadium data.
 
 This class utilizes the Wikipedia API to retrieve NFL stadium data and provides methods for easy 
-access to the same. By default, it will try to utilize cached data and will only retrieve from Wikipedia 
-if there is no cached data.
-
-For example:<br>
-First Run - No cache available, will retrieve stadium data from Wikipedia and build the cache<br>
-Second Run - Will utilize cache (no connection to Wikipedia is necessary)
-
-Stadium data is fairly static and does not need updating frequently, but to update the cache, 
-see the documentation below.
+access to the same. Stadium data is fairly static, so by default, this class will save the data retrieved from 
+Wikipedia locally for subsequent uses for quicker access and less load on Wikipedia. See the below documentation 
+for details on basic usage.
 
 ## Pre-requisites
-- [BeautifulSoup4](https://pypi.org/project/beautifulsoup4/): `pip install beautifulsoup4`
+- [requests](https://pypi.org/project/requests/)
+- [BeautifulSoup4](https://pypi.org/project/beautifulsoup4/)
+
+```
+pip install beautifulsoup4
+pip install requests
+```
 
 ## Installation and Creating an Instance
-1. Clone or download the repository
-```bash
-git clone https://github.com/your-username/NFLTeamStadiums.git
-```
-
+1. Clone or download the repository 
 2. Import the class in your code
-```
-from nflTeamStadiums import NFLTeamStadiums
-```
-
 3. Instantiate the class
-```python 
-# By default, the class uses cache and is verbose
-nfl_stadiums = NFLTeamStadiums()                    # by default will use cached data and print to console
-nfl_stadiums = NFLTeamStadiums(use_cache=False)     # will re-scrape wikipedia and overwrite cache
+```
+git clone https://github.com/your-username/NFLTeamStadiums.git
+from nflTeamStadiums import NFLTeamStadiums
+
+# Use one of the below to instantiante the class
+nfl_stadiums = NFLTeamStadiums()                    # will use local cache if available and print to console
+nfl_stadiums = NFLTeamStadiums(use_cache=False)     # will retrieve data from wikipedia and overwrite local cache
 nfl_stadiums = NFLTeamStadiums(verbose=False)       # will turn off console printing
 ```
 
@@ -46,7 +41,7 @@ nfl_stadiums.get_stadium_by_team("lions")
 {
     "name": "Ford Field",
     "capacity": 65000,
-    "imgUrl": "https://en.wikipedia.org//wiki/File:Packers_at_Lions_Dec_2020_(50715608723).jpg",
+    "imgUrl": "https://en.wikipedia.org/wiki/File:Packers_at_Lions_Dec_2020_(50715608723).jpg",
     "city": "Detroit, Michigan",
     "surface": "FieldTurf CORE",
     "roofType": "Fixed",
@@ -57,7 +52,13 @@ nfl_stadiums.get_stadium_by_team("lions")
     "sharedStadium": false,
     "currentTeams": [
         "DET"
-    ]
+    ],
+    "coordinates": {
+        "lat": 42.34,
+        "lon": -83.04555556,
+        "primary": "",
+        "globe": "earth"
+    }
 }
 ```
 
@@ -72,13 +73,15 @@ nfl_stadiums.get_list_of_stadium_names()
 ```
 
 ## Data Source
-This package utilizes data from Wikipedia. The core page is based here:
-https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums
+This package utilizes data from Wikipedia. The core page is 
+[here](https://en.wikipedia.org/wiki/List_of_current_NFL_stadiums).
+
+
+You are responsible for how you use the data. Wikipedia content is licensed under 
+the Creative Commons Attribution-ShareAlike 3.0 Unported License. For more details on the terms of use, 
+please refer to the [Wikimedia Foundation's Terms of Use](https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use).
+
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-Wikipedia content is accessed through this class upon instantiation. Wikipedia content is licensed under 
-the Creative Commons Attribution-ShareAlike 3.0 Unported License. For more details on the terms of use, 
-please refer to the Wikimedia Foundation's Terms of Use:
-https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use
