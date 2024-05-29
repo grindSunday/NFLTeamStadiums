@@ -186,36 +186,43 @@ class NFLTeamStadiums:
 
     def _add_stadium_coordinates_to_data(self):
         titles = [x for x in self._stadium_metadata]
-        titles = '|'.join(titles)
+        all_coordinates = {}
 
-        # API parameters to get the full HTML content
-        params = {
-            'action': 'query',
-            'format': 'json',
-            'prop': 'coordinates',
-            'titles': titles
-        }
+        batch_size = 10  # Adjust the batch size as needed
+        for i in range(0, len(titles), batch_size):
+            batch_titles = titles[i:i + batch_size]
+            batch_titles_str = '|'.join(batch_titles)
 
-        response = rC.basic_request(self._main_url, headers=self._header, params=params)
-        if response.status_code != 200:
-            self._check_print("ERROR: Could not complete the API request to get coordinates for stadiums")
-            return None
 
-        data = response.json()
+            # API parameters to get the full HTML content
+            params = {
+                'action': 'query',
+                'format': 'json',
+                'prop': 'coordinates',
+                'titles': batch_titles_str
+            }
 
-        # Process each page in the API response
-        pages = data['query']['pages']
-        for page_id, page_data in pages.items():
-            title = page_data['title'].replace(" ", "_")
-            if "coordinates" in page_data:
-                coordinates = page_data["coordinates"][0]
-            else:
-                coordinates = None
+            response = rC.basic_request(self._main_url, headers=self._header, params=params)
+            if response.status_code != 200:
+                self._check_print("ERROR: Could not complete the API request to get coordinates for stadiums")
+                continue
 
-            data_index = self._stadium_metadata[title]['index']
-            # noinspection PyTypeChecker
-            self.data[data_index]['coordinates'] = coordinates
+            data = response.json()
 
+            # Process each page in the API response
+            pages = data['query']['pages']
+            for page_id, page_data in pages.items():
+                title = page_data['title'].replace(" ", "_")
+                if "coordinates" in page_data:
+                    coordinates = page_data["coordinates"][0]
+                else:
+                    coordinates = None
+                all_coordinates[title] = coordinates
+
+            for title, coordinates in all_coordinates.items():
+                data_index = self._stadium_metadata[title]['index']
+                # noinspection PyTypeChecker
+                self.data[data_index]['coordinates'] = coordinates
 
     def _check_create_project_structure(self):
         osC.check_create_directory(self._resources_dir)
@@ -277,7 +284,7 @@ class NFLTeamStadiums:
 
 def main():
     # Test code
-    nfl_stadiums = NFLTeamStadiums(use_cache=True)
+    nfl_stadiums = NFLTeamStadiums(use_cache=False)
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
