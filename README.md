@@ -62,6 +62,12 @@ nfl_stadiums.get_stadium_by_team("lions")
 }
 ```
 
+### calculate_distance_between_stadiums
+```
+distance_in_miles = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
+```
+
+
 ### get_list_of_stadium_names
 ```
 nfl_stadiums.get_list_of_stadium_names()

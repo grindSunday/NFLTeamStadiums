@@ -3,6 +3,7 @@ from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
 import urllib.parse
+import math
 
 
 class NFLTeamStadiums:
@@ -282,9 +283,52 @@ class NFLTeamStadiums:
             return None
 
 
+    def get_stadium_coordinates_by_team(self, team):
+        return self.get_stadium_by_team(team)['coordinates']
+
+    def calculate_distance_between_stadiums(self, team1, team2):
+        """
+        Calculates the distance in miles from away team stadium to home team stadium by using stadium coordinates
+        and the haversine formula (https://en.wikipedia.org/wiki/Haversine_formula)
+
+        :param team1:    str(), team1 is used to get coordinates for stadium e.g., Detroit Lions
+        :param team2:    str(), team2 is used to get coordinates for stadium e.g., Chiefs
+
+        :return:         dict(), JSON format of all available data for the given stadium for the provided team
+        """
+
+        def calculate_haversine_distance(coord1, coord2):
+            # Radius of the Earth in miles
+            radius = 3958.8
+
+            # Coordinates in decimal degrees
+            lat1, lon1 = coord1['lat'], coord1['lon']
+            lat2, lon2 = coord2['lat'], coord2['lon']
+
+            # Convert latitude and longitude from degrees to radians
+            lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+            # Haversine formula
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+            c = 2 * math.asin(math.sqrt(a))
+
+            # Distance in miles
+            distance = radius * c
+
+            return distance
+
+        team1_coords = self.get_stadium_coordinates_by_team(team1)
+        team2_coords = self.get_stadium_coordinates_by_team(team2)
+
+        return calculate_haversine_distance(team1_coords, team2_coords)
+
+
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
+    ford_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
