@@ -284,7 +284,8 @@ class NFLTeamStadiums:
 
 
     def get_stadium_coordinates_by_team(self, team):
-        return self.get_stadium_by_team(team)['coordinates']
+        # noinspection PyTypeChecker
+        return self.get_stadium_by_team(team)["coordinates"]
 
     def calculate_distance_between_stadiums(self, team1, team2):
         """
