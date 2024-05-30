@@ -19,8 +19,12 @@ pip install requests
 1. Clone or download the repository 
 2. Import the class in your code
 3. Instantiate the class
+
 ```
 git clone https://github.com/your-username/NFLTeamStadiums.git
+```
+
+```
 from nflTeamStadiums import NFLTeamStadiums
 
 # Use one of the below to instantiante the class
