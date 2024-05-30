@@ -2,6 +2,7 @@ from custom_libs import requestsCommon as rC
 from custom_libs import osCommon as osC
 from custom_libs import fileCommon as fC
 from custom_libs.teamLists import city_short, alt_city_short, long, mascots, mascots_short
+from datetime import datetime, timedelta
 import urllib.parse
 import math
 
@@ -282,7 +283,6 @@ class NFLTeamStadiums:
                               "data for them in the Wikipedia content.")
             return None
 
-
     def get_stadium_coordinates_by_team(self, team):
         # noinspection PyTypeChecker
         return self.get_stadium_by_team(team)["coordinates"]
@@ -326,10 +326,55 @@ class NFLTeamStadiums:
         return calculate_haversine_distance(team1_coords, team2_coords)
 
 
+    def get_weather_forecast_for_stadium(self, team, day, hour_start=0, hour_end=23, day_format="%Y-%m-%d",
+                                         timezone='America/New_York'):
+        """
+        https://api.open-meteo.com/v1/forecast?
+        latitude=42.3103&
+        longitude=-83.2458&
+        &temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&start_date=2024-06-04&end_date=2024-06-04
+        """
+        base_url = "https://api.open-meteo.com/v1/forecast"
+
+        coords = self.get_stadium_coordinates_by_team(team)
+        lat = coords['lat']
+        lon = coords['lon']
+
+        start_datetime_str = f"{day} {hour_start}:00:00"
+        end_datetime_str = f"{day} {hour_end}:00:00"
+        start_datetime_obj = datetime.strptime(start_datetime_str, f"{day_format} %H:%M:%S")
+        end_datetime_obj = datetime.strptime(end_datetime_str, f"{day_format} %H:%M:%S")
+        start_date = start_datetime_obj.strftime("%Y-%m-%dT%H:00:00Z")
+        end_date = end_datetime_obj.strftime("%Y-%m-%dT%H:00:00Z")
+
+        params = {
+            'latitude': lat,
+            'longitude': lon,
+            'hourly': 'temperature_2m,apparent_temperature,precipitation_probability,precipitation,rain,'
+                      'showers,snowfall,snow_depth,wind_speed_10m,wind_speed_80m,wind_direction_10m',
+            'temperature_unit': 'fahrenheit',
+            'wind_speed_unit': 'mph',
+            'precipitation_unit': 'inch',
+            'start_date': start_date.split('T')[0],
+            'end_date': end_date.split('T')[0],
+            'timezone': timezone
+        }
+
+        response = rC.basic_request(base_url, params=params)
+
+        if response.status_code == 200:
+            weather_data = response.json()
+            return weather_data
+        else:
+            print(f"Error: Unable to get weather data. Status code: {response.status_code}")
+            return None
+
+
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
-    ford_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
+    ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', "2024-05-30")
+    ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
     print(stadium_names[:5])
