@@ -31,6 +31,7 @@ class NFLTeamStadiums:
 
         # Project Structure
         self._resources_dir = osC.create_file_path_string(["resources"])
+        self._raw_soup = None
         self._raw_soup_file = osC.create_file_path_string(["resources", "rawSoup.txt"])
         self._parsed_soup_file = osC.create_file_path_string(["resources", "parsedSoup.json"])
         self._check_create_project_structure()
@@ -38,6 +39,9 @@ class NFLTeamStadiums:
         # Used to find stadium table from HTML. Change this if wiki structure changes.
         self._current_stadiums_wiki_section_name = 'List_of_current_stadiums'
         self._current_stadiums_table_from_heading = 2
+        self._additional_stadiums_wiki_section_name = 'Additional_stadiums'
+        self._additional_stadiums_table_from_heading = 1
+
 
         # Used for team lookups
         self._teams_city_short = [x.lower() for x in city_short]
@@ -54,6 +58,7 @@ class NFLTeamStadiums:
 
         if not self.data:
             self._get_current_stadium_data()
+            self._get_other_stadium_data()
             self._add_normalized_current_team_to_data()
             self._add_stadium_coordinates_to_data()
             fC.dump_json_to_file(self._parsed_soup_file, self.data)
@@ -74,13 +79,108 @@ class NFLTeamStadiums:
                               "parameter use_cache = False")
             self.data = parsed_soup
 
+    @staticmethod
+    def _find_table_under_heading(heading_ele, table_num_from_heading):
+        # find table under heading
+        next_ele = heading_ele.next_element
+        table_count = 1
+        table_element = None
+        while next_ele and table_count <= table_num_from_heading:
+            next_ele = next_ele.next_element
+            if next_ele.name == 'table':
+                if table_count == table_num_from_heading:
+                    table_element = next_ele
+                    break
+                else:
+                    table_count = table_count + 1
+
+        return table_element
+
+    @staticmethod
+    def _get_table_rows(table_element):
+        return table_element.find_all('tr')
+
+    @staticmethod
+    def _get_table_column_indices(table_rows):
+        columns = [x.text.strip() for x in table_rows[0].find_all('th')]
+        try:
+            name_index = columns.index('Name')
+        except ValueError:
+            name_index = columns.index('Stadium')
+        img_index = columns.index('Image')
+        capacity_index = columns.index('Capacity')
+        city_index = columns.index('Location')
+        surface_index = columns.index('Surface')
+        roof_index = columns.index('Roof type')
+        try:
+            teams_or_events = columns.index('Team(s)')
+            is_teams = True
+        except ValueError:
+            teams_or_events = columns.index('Event(s)')
+            is_teams = False
+
+        date_opened_index = columns.index('Opened')
+
+        return (name_index, img_index, capacity_index, city_index, surface_index, roof_index, teams_or_events,
+                date_opened_index, is_teams)
+
+    @staticmethod
+    def _clean_wiki_text(text_to_extract_from):
+        text_to_extract_from = text_to_extract_from.strip()
+        ref_bracket_loc = text_to_extract_from.find('[')
+        return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
+
+    def _parse_table_add_to_data(self, table_rows):
+        (name_index, img_index, capacity_index, city_index, surface_index, roof_index, teams_or_events,
+         date_opened_index, is_teams) = self._get_table_column_indices(table_rows)
+
+        index_count = len(self.data)
+        for row in table_rows[1:]:
+            cells = row.find_all(['th', 'td'])
+            name = self._clean_wiki_text(cells[name_index].text)
+            temp_url = cells[name_index].find_all('a')[0].attrs['href']
+            try:
+                temp_class_list = cells[name_index].find_all('a')[0].attrs['class']
+            except KeyError:
+                temp_class_list = []
+
+            if len([x for x in temp_class_list if 'redirect' in x]) > 0:
+                has_redirect = True
+            else:
+                has_redirect = False
+            title = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
+            self._stadium_metadata[title] = {}
+            self._stadium_metadata[title]['name'] = name
+            self._stadium_metadata[title]['url'] = f"https://en.wikipedia.org{temp_url}"
+            self._stadium_metadata[title]['index'] = index_count
+            self._stadium_metadata[title]['hasRedirect'] = has_redirect
+            img_url = f"https://en.wikipedia.org{cells[img_index].find_all('a')[0].attrs['href']}"
+            capacity = self._clean_wiki_text(cells[capacity_index].text.replace(",", ""))
+            city = self._clean_wiki_text(cells[city_index].text)
+            surface = self._clean_wiki_text(cells[surface_index].text)
+            roof_type = self._clean_wiki_text(cells[roof_index].text)
+            if is_teams:
+                teams = [self._clean_wiki_text(x.text) for x in cells[teams_or_events].find_all('a')]
+            else:
+                teams = []
+
+            year_opened = self._clean_wiki_text(cells[date_opened_index].text)
+
+            temp_dict = {
+                "name": name,
+                "capacity": int(capacity),
+                "imgUrl": img_url,
+                "city": city,
+                "surface": surface,
+                "roofType": roof_type,
+                "teams": teams,
+                "yearOpened": int(year_opened)
+            }
+
+            self.data.append(temp_dict.copy())
+            index_count = index_count + 1
+
     def _get_current_stadium_data(self):
-
-        def _clean_wiki_text(text_to_extract_from):
-            text_to_extract_from = text_to_extract_from.strip()
-            ref_bracket_loc = text_to_extract_from.find('[')
-            return text_to_extract_from[:ref_bracket_loc] if ref_bracket_loc > -1 else text_to_extract_from
-
         # Parameters for the API request
         params = {
             "action": "parse",
@@ -98,78 +198,42 @@ class NFLTeamStadiums:
         html_content = data['parse']['text']['*']
 
         # Parse the HTML content with BeautifulSoup
-        soup = rC.get_soup_from_html_content(html_content)
-        fC.write_content_to_file(self._raw_soup_file, str(soup))
+        self._raw_soup = rC.get_soup_from_html_content(html_content)
+        fC.write_content_to_file(self._raw_soup_file, str(self._raw_soup))
 
         # find heading above table
-        heading = soup.find(id=self._current_stadiums_wiki_section_name)
+        heading = self._raw_soup.find(id=self._current_stadiums_wiki_section_name)
 
         if not heading:
-            print("ERROR: Could not scrape wikipedia correctly. The sections may have been updated.")
+            print("ERROR: Could not get wikipedia current stadium data. The sections may have been updated.")
             return None
 
-        # find second table under heading
-        next_ele = heading.next_element
-        table_count = 1
-        table_element = None
-        while next_ele and table_count <= self._current_stadiums_table_from_heading:
-            next_ele = next_ele.next_element
-            if next_ele.name == 'table':
-                if table_count == self._current_stadiums_table_from_heading:
-                    table_element = next_ele
-                    break
-                else:
-                    table_count = table_count + 1
+        table_element = self._find_table_under_heading(heading, self._current_stadiums_table_from_heading)
 
         if not table_element:
-            print("ERROR: Could not scrape wikipedia correctly. Could not find the stadium table.")
+            print("ERROR: Could not get wikipedia table data. Could not find current stadium table.")
             return None
 
-        # extract table contents
-        main_table_content = table_element.find_all('tr')
-        columns = [x.text.strip() for x in main_table_content[0].find_all('th')]
+        table_rows = self._get_table_rows(table_element)
+        self._parse_table_add_to_data(table_rows)
 
-        # indices
-        name_index = columns.index('Name')
-        img_index = columns.index('Image')
-        capacity_index = columns.index('Capacity')
-        city_index = columns.index('Location')
-        surface_index = columns.index('Surface')
-        roof_index = columns.index('Roof type')
-        teams_index = columns.index('Team(s)')
-        date_opened_index = columns.index('Opened')
+    def _get_other_stadium_data(self):
+        if self._raw_soup is None:
+            self._raw_soup = rC.get_soup_from_html_content(fC.read_file_content(self._raw_soup_file))
 
-        index_count = 0
-        for row in main_table_content[1:]:
-            cells = row.find_all(['th', 'td'])
-            name = _clean_wiki_text(cells[name_index].text)
-            temp_url = cells[name_index].find_all('a')[0].attrs['href']
-            title = urllib.parse.unquote(temp_url.rsplit('/', 1)[-1])
-            self._stadium_metadata[title] = {}
-            self._stadium_metadata[title]['name'] = name
-            self._stadium_metadata[title]['url'] = f"https://en.wikipedia.org{temp_url}"
-            self._stadium_metadata[title]['index'] = index_count
-            img_url = f"https://en.wikipedia.org{cells[img_index].find_all('a')[0].attrs['href']}"
-            capacity = _clean_wiki_text(cells[capacity_index].text.replace(",", ""))
-            city = _clean_wiki_text(cells[city_index].text)
-            surface = _clean_wiki_text(cells[surface_index].text)
-            roof_type = _clean_wiki_text(cells[roof_index].text)
-            teams = [_clean_wiki_text(x.text) for x in cells[teams_index].find_all('a')]
-            year_opened = _clean_wiki_text(cells[date_opened_index].text)
+        heading = self._raw_soup.find(id=self._additional_stadiums_wiki_section_name)
+        if not heading:
+            print("ERROR: Could not get wikipedia additional stadium data. The sections may have been updated.")
+            return None
 
-            temp_dict = {
-                "name": name,
-                "capacity": int(capacity),
-                "imgUrl": img_url,
-                "city": city,
-                "surface": surface,
-                "roofType": roof_type,
-                "teams": teams,
-                "yearOpened": int(year_opened)
-                }
+        table_element = self._find_table_under_heading(heading, self._additional_stadiums_table_from_heading)
 
-            self.data.append(temp_dict.copy())
-            index_count = index_count + 1
+        if not table_element:
+            print("ERROR: Could not get wikipedia table data. Could not find additional stadium table.")
+            return None
+
+        table_rows = self._get_table_rows(table_element)
+        self._parse_table_add_to_data(table_rows)
 
     def _add_normalized_current_team_to_data(self):
         """
@@ -183,18 +247,51 @@ class NFLTeamStadiums:
                 if found_team:
                     found_current_teams.append(found_team)
 
-            stadium['sharedStadium'] = False if len(found_current_teams) == 1 else True
+            stadium['sharedStadium'] = False if len(found_current_teams) <= 1 else True
             stadium['currentTeams'] = found_current_teams.copy()
 
-    def _add_stadium_coordinates_to_data(self):
-        titles = [x for x in self._stadium_metadata]
-        all_coordinates = {}
-
-        batch_size = 10  # Adjust the batch size as needed
+    def _resolve_redirects(self, titles):
+        batch_size = 10
+        final_titles = {}
         for i in range(0, len(titles), batch_size):
             batch_titles = titles[i:i + batch_size]
             batch_titles_str = '|'.join(batch_titles)
 
+            params = {
+                'action': 'query',
+                'format': 'json',
+                'titles': batch_titles_str,
+                'redirects': 1
+            }
+
+            response = rC.basic_request(self._main_url, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                redirects = data.get('query', {}).get('redirects', [])
+
+                # Map original titles to final titles
+                for redirect in redirects:
+                    final_titles[redirect['from'].replace(" ", "_")] = redirect['to'].replace(" ", "_")
+
+        return final_titles
+
+    def _add_stadium_coordinates_to_data(self):
+        titles = [x for x in self._stadium_metadata if self._stadium_metadata[x]['hasRedirect'] is False]
+        redirects = [x for x in self._stadium_metadata if self._stadium_metadata[x]['hasRedirect']]
+        resolved_redirects = self._resolve_redirects(redirects)
+        redirect_titles = list(resolved_redirects.values())
+
+        for from_title, to_title in resolved_redirects.items():
+            self._stadium_metadata[from_title]['finalTitle'] = to_title
+            titles.append(to_title)
+
+        batch_size = 10     # adjust if some data is not coming back (wikipedia api currently works with 10)
+        all_coordinates = {}
+
+        for i in range(0, len(titles), batch_size):
+            batch_titles = titles[i:i + batch_size]
+            batch_titles_str = '|'.join(batch_titles)
 
             # API parameters to get the full HTML content
             params = {
@@ -222,6 +319,12 @@ class NFLTeamStadiums:
                 all_coordinates[title] = coordinates
 
             for title, coordinates in all_coordinates.items():
+                if title in redirect_titles:
+                    for key, value in resolved_redirects.items():
+                        if value == title:
+                            title = key
+
+                            break
                 data_index = self._stadium_metadata[title]['index']
                 # noinspection PyTypeChecker
                 self.data[data_index]['coordinates'] = coordinates
@@ -324,7 +427,6 @@ class NFLTeamStadiums:
         team2_coords = self.get_stadium_coordinates_by_team(team2)
 
         return calculate_haversine_distance(team1_coords, team2_coords)
-
 
     def get_weather_forecast_for_stadium(self, team, day, hour_start=0, hour_end=23, day_format="%Y-%m-%d",
                                          timezone='America/New_York'):
