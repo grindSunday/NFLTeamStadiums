@@ -27,12 +27,14 @@ git clone https://github.com/your-username/NFLTeamStadiums.git
 ```
 from nflTeamStadiums import NFLTeamStadiums
 
-# Use one of the below to instantiante the class
-nfl_stadiums = NFLTeamStadiums()                    # will use local cache if available and print to console
-nfl_stadiums = NFLTeamStadiums(use_cache=False)     # will retrieve data from wikipedia and overwrite local cache
-nfl_stadiums = NFLTeamStadiums(verbose=False)       # will turn off console printing
-```
+# Default instantiation will use local cache if available and print to console
+nfl_stadiums = NFLTeamStadiums()
 
+# Set verbose=false to stop printing to console and use_cache=false to retrieve data from wikipedia and overwrite cache
+nfl_stadiums = NFLTeamStadiums(use_cache=False, verbose=False)
+
+
+```
 ## Methods
 
 ### get_stadium_by_team
