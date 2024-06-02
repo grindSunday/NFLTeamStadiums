@@ -392,6 +392,8 @@ class NFLTeamStadiums:
         try:
             return [x for x in self.data if x['name'].lower() == name][0]
         except IndexError:
+            self._check_print(f"ERROR: {name} does not match a stadium name in the data. Use get_list_of_stadium_names"
+                              f" to get a list of valid stadium names.")
             return None
 
     def get_stadium_coordinates_by_team(self, team):
@@ -457,7 +459,10 @@ class NFLTeamStadiums:
         else:
             stadium2_coords = self.get_stadium_coordinates_by_team(team_stadium2)
 
-        return calculate_haversine_distance(stadium1_coords, stadium2_coords)
+        if stadium1_coords is None or stadium2_coords is None:
+            return None
+        else:
+            return calculate_haversine_distance(stadium1_coords, stadium2_coords)
 
     def get_weather_forecast_for_stadium(self, team, day, hour_start=0, hour_end=23, day_format="%Y-%m-%d",
                                          timezone='America/New_York', stadium_name=None):
