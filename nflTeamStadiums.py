@@ -386,6 +386,14 @@ class NFLTeamStadiums:
                               "data for them in the Wikipedia content.")
             return None
 
+    def get_stadium_by_name(self, name):
+        name = name.lower()
+
+        try:
+            return [x for x in self.data if x['name'].lower() == name][0]
+        except ValueError:
+            return None
+
     def get_stadium_coordinates_by_team(self, team):
         # noinspection PyTypeChecker
         return self.get_stadium_by_team(team)["coordinates"]
@@ -475,12 +483,11 @@ class NFLTeamStadiums:
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
+    acrisure_stadium = nfl_stadiums.get_stadium_by_name('Acrisure stadium')
     ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', "2024-05-30")
     ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
-    lions_stadium = nfl_stadiums.get_stadium_by_team('detroit lions')
-    print(stadium_names[:5])
-    print(lions_stadium)
+    lions_stadiums = nfl_stadiums.get_stadium_by_team('detroit lions')
 
 
 if __name__ == '__main__':

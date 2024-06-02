@@ -42,6 +42,11 @@ nfl_stadiums = NFLTeamStadiums(use_cache=False, verbose=False)
 nfl_stadiums.get_stadium_by_team("lions")
 ```
 
+### get_stadium_by_name
+```
+nfl_stadiums.get_stadium_by_team("ford field")
+```
+
 #### results:
 ```json
 {
@@ -76,10 +81,10 @@ distance_in_miles = nfl_stadiums.calculate_distance_between_stadiums('lions', 'c
 ### get_weather_forecast_for_stadium
 ```
 # To get the full day
-ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', "2024-05-30")
+ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', '2024-05-30')
 
 # Fine tune with additional parameters, for example, for just gametime
-ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium(team, day, hour_start=0, hour_end=23, 
+ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', '2024-05-30', hour_start=12, hour_end=15, 
                                                                    day_format="%Y-%m-%d",
                                                                    timezone='America/New_York')
 ```
