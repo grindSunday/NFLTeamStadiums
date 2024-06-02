@@ -398,15 +398,24 @@ class NFLTeamStadiums:
         # noinspection PyTypeChecker
         return self.get_stadium_by_team(team)["coordinates"]
 
-    def calculate_distance_between_stadiums(self, team1, team2):
+    def get_stadium_coordinates_by_name(self, name):
+        return self.get_stadium_by_name(name)["coordinates"]
+
+    def calculate_distance_between_stadiums(self, team_stadium1, team_stadium2, name_stadium1=None, name_stadium2=None):
         """
         Calculates the distance in miles from away team stadium to home team stadium by using stadium coordinates
         and the haversine formula (https://en.wikipedia.org/wiki/Haversine_formula)
 
-        :param team1:    str(), team1 is used to get coordinates for stadium e.g., Detroit Lions
-        :param team2:    str(), team2 is used to get coordinates for stadium e.g., Chiefs
+        :param team_stadium1:    str(), used to get coordinates for corresponding stadium e.g., Detroit Lions
+        :param team_stadium2:    str(), used to get coordinates for corresponding stadium e.g., Chiefs
+        :param name_stadium1:    str(), optional. Used in place of team_stadium1.
+        :param name_stadium2:    str(), optional. Used in place of team_stadium1.
 
-        :return:         dict(), JSON format of all available data for the given stadium for the provided team
+        To use name instead of a team, call the function like below example:
+        stadiums.calculate_distance_between_stadiums('', '', stadium1_name='ford field', stadium2_name='at&t stadium')
+
+        :return:                 float(), distance in miles calculated utilizing haversine formula
+                                 https://en.wikipedia.org/wiki/Haversine_formula
         """
 
         def calculate_haversine_distance(coord1, coord2):
@@ -431,22 +440,51 @@ class NFLTeamStadiums:
 
             return distance
 
-        team1_coords = self.get_stadium_coordinates_by_team(team1)
-        team2_coords = self.get_stadium_coordinates_by_team(team2)
+        if name_stadium1 is not None:
+            stadium1_coords = self.get_stadium_coordinates_by_name(name_stadium1)
+        else:
+            stadium1_coords = self.get_stadium_coordinates_by_team(team_stadium1)
 
-        return calculate_haversine_distance(team1_coords, team2_coords)
+        if name_stadium2 is not None:
+            stadium2_coords = self.get_stadium_coordinates_by_name(name_stadium2)
+        else:
+            stadium2_coords = self.get_stadium_coordinates_by_team(team_stadium2)
+
+        return calculate_haversine_distance(stadium1_coords, stadium2_coords)
 
     def get_weather_forecast_for_stadium(self, team, day, hour_start=0, hour_end=23, day_format="%Y-%m-%d",
-                                         timezone='America/New_York'):
+                                         timezone='America/New_York', stadium_name=None):
         """
-        https://api.open-meteo.com/v1/forecast?
-        latitude=42.3103&
-        longitude=-83.2458&
-        &temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&start_date=2024-06-04&end_date=2024-06-04
+        :param team:            str(), used to retrieve the stadium for which you want weather. Alternatively, use
+                                the stadium_name parameter.
+
+        :param day:             str(), day you want weather in format specified by the day_format parameter
+                                (default %Y-%m-%d). E.g., 2024-06-02
+                                specified by day_format parameter.
+
+        :param hour_start:      int(), hour in 24-hour format corresponding to the timezone specified in the timezone
+                                parameter (default America/New_York). Weather data will be retrieved starting with the
+                                hour specified here and through the hour in hour_end (default 0)
+
+        :param hour_end:        int(), hour in 24-hour format corresponding to the timezone specified in the timezone
+                                parameter (default America/New_York). Weather data will be retrieved through the
+                                hour specified here and starting with the hour in hour_start (default 23)
+
+        :param day_format:      str(), datetime format for parameter day. https://strftime.org/
+
+        :param timezone:        str(), Open Meteo API timezone utilized for hour parameter (default America/New_York).
+                                See timezone options here: https://open-meteo.com/en/docs
+
+        :param stadium_name:    str(), optional, If provided, will utilize this parameter instead of team parameter to
+                                retrieve stadium information.
         """
         base_url = "https://api.open-meteo.com/v1/forecast"
 
-        coords = self.get_stadium_coordinates_by_team(team)
+        if stadium_name is not None:
+            coords = self.get_stadium_coordinates_by_name(stadium_name)
+        else:
+            coords = self.get_stadium_coordinates_by_team(team)
+
         lat = coords['lat']
         lon = coords['lon']
 
@@ -483,6 +521,7 @@ class NFLTeamStadiums:
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
+    jags_coords = nfl_stadiums.get_stadium_coordinates_by_team('jaguars')
     acrisure_stadium = nfl_stadiums.get_stadium_by_name('Acrisure stadium')
     ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', "2024-05-30")
     ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')

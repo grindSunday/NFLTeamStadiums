@@ -32,8 +32,6 @@ nfl_stadiums = NFLTeamStadiums()
 
 # Set verbose=false to stop printing to console and use_cache=false to retrieve data from wikipedia and overwrite cache
 nfl_stadiums = NFLTeamStadiums(use_cache=False, verbose=False)
-
-
 ```
 ## Methods
 
@@ -47,7 +45,7 @@ nfl_stadiums.get_stadium_by_team("lions")
 nfl_stadiums.get_stadium_by_team("ford field")
 ```
 
-#### results:
+#### results
 ```json
 {
     "name": "Ford Field",
@@ -89,7 +87,7 @@ ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', '202
                                                                    timezone='America/New_York')
 ```
 
-#### results:
+#### results
 ```
 {
     "latitude": 42.351395, 
@@ -125,12 +123,31 @@ ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', '202
 }
 ```
 
+### get_stadium_coordinates_by_team
+```
+self.get_stadium_by_team('jaguars')
+```
+
+### get_stadium_coordinates_by_name
+```
+self.get_stadium_by_name('arrowhead stadium')
+```
+
+#### results
+```
+{'globe': 'earth', 
+ 'lat': 30.32388889, 
+ 'lon': -81.6375, 
+ 'primary': ''
+ }
+```
+
 ### get_list_of_stadium_names
 ```
 nfl_stadiums.get_list_of_stadium_names()
 ```
 
-#### results:
+#### results
 ```
 ['Acrisure Stadium', 'Allegiant Stadium', 'Arrowhead Stadium', 'AT&T Stadium', 'Bank of America Stadium' ...]
 ```
