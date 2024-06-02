@@ -395,11 +395,18 @@ class NFLTeamStadiums:
             return None
 
     def get_stadium_coordinates_by_team(self, team):
-        # noinspection PyTypeChecker
-        return self.get_stadium_by_team(team)["coordinates"]
+        try:
+            # noinspection PyTypeChecker
+            return self.get_stadium_by_team(team)["coordinates"]
+        except TypeError or KeyError:
+            return None
 
     def get_stadium_coordinates_by_name(self, name):
-        return self.get_stadium_by_name(name)["coordinates"]
+        try:
+            # noinspection PyTypeChecker
+            return self.get_stadium_by_name(name)["coordinates"]
+        except TypeError or KeyError:
+            return None
 
     def calculate_distance_between_stadiums(self, team_stadium1, team_stadium2, name_stadium1=None, name_stadium2=None):
         """
