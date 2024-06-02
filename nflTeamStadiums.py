@@ -391,7 +391,7 @@ class NFLTeamStadiums:
 
         try:
             return [x for x in self.data if x['name'].lower() == name][0]
-        except ValueError:
+        except IndexError:
             return None
 
     def get_stadium_coordinates_by_team(self, team):
