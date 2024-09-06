@@ -511,7 +511,8 @@ class NFLTeamStadiums:
             'latitude': lat,
             'longitude': lon,
             'hourly': 'temperature_2m,apparent_temperature,precipitation_probability,precipitation,rain,'
-                      'showers,snowfall,snow_depth,wind_speed_10m,wind_speed_80m,wind_direction_10m',
+                      'showers,snowfall,snow_depth,wind_speed_10m,wind_speed_80m,wind_direction_10m,cloud_cover,'
+                      'wind_direction_10m,wind_direction_80m,wind_gusts_10m,weather_code,visibility',
             'temperature_unit': 'fahrenheit',
             'wind_speed_unit': 'mph',
             'precipitation_unit': 'inch',
@@ -548,13 +549,13 @@ class NFLTeamStadiums:
 def main():
     # Test code
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
-    jags_coords = nfl_stadiums.get_stadium_coordinates_by_team('jaguars')
-    acrisure_stadium = nfl_stadiums.get_stadium_by_name('Acrisure stadium')
+    # jags_coords = nfl_stadiums.get_stadium_coordinates_by_team('jaguars')
+    # acrisure_stadium = nfl_stadiums.get_stadium_by_name('Acrisure stadium')
     pit_weather = nfl_stadiums.get_weather_forecast_for_stadium('pit', "2024-09-08",
                                                                 hour_start=13, hour_end=16)
-    ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
-    stadium_names = nfl_stadiums.get_list_of_stadium_names()
-    lions_stadiums = nfl_stadiums.get_stadium_by_team('detroit lions')
+    # ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
+    # stadium_names = nfl_stadiums.get_list_of_stadium_names()
+    # lions_stadiums = nfl_stadiums.get_stadium_by_team('detroit lions')
     stop = 1
 
 if __name__ == '__main__':
