@@ -524,6 +524,21 @@ class NFLTeamStadiums:
 
         if response.status_code == 200:
             weather_data = response.json()
+
+            indices = []
+            re_structure = False
+            for i, t in enumerate(weather_data['hourly']['time']):
+                tc = datetime.strptime(t, '%Y-%m-%dT%H:%M')
+                if start_datetime_obj <= tc <= end_datetime_obj:
+                    indices.append(i)
+                else:
+                    re_structure = True
+
+            if re_structure:
+                for key in weather_data['hourly']:
+                    new_list = [weather_data['hourly'][key][x] for x in indices]
+                    weather_data['hourly'][key] = new_list.copy()
+
             return weather_data
         else:
             print(f"Error: Unable to get weather data. Status code: {response.status_code}")
@@ -535,11 +550,12 @@ def main():
     nfl_stadiums = NFLTeamStadiums(use_cache=True)
     jags_coords = nfl_stadiums.get_stadium_coordinates_by_team('jaguars')
     acrisure_stadium = nfl_stadiums.get_stadium_by_name('Acrisure stadium')
-    ford_field_weather = nfl_stadiums.get_weather_forecast_for_stadium('lions', "2024-05-30")
+    pit_weather = nfl_stadiums.get_weather_forecast_for_stadium('pit', "2024-09-08",
+                                                                hour_start=13, hour_end=16)
     ford_field_to_arrow_head = nfl_stadiums.calculate_distance_between_stadiums('lions', 'chiefs')
     stadium_names = nfl_stadiums.get_list_of_stadium_names()
     lions_stadiums = nfl_stadiums.get_stadium_by_team('detroit lions')
-
+    stop = 1
 
 if __name__ == '__main__':
     main()
